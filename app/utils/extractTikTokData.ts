@@ -6,7 +6,36 @@ interface TikTokData {
   hashtags: string[];
 }
 
+// Try to use tiktok-scraper if available, otherwise fall back to manual scraping
 async function extractTikTokData(url: string): Promise<TikTokData> {
+  try {
+    // First, try to use tiktok-scraper if it's available
+    try {
+      const TikTokScraper = require('tiktok-scraper');
+      const result = await TikTokScraper.getVideoMeta(url);
+      
+      return {
+        caption: result.text || 'No caption',
+        audio: result.musicMeta?.musicName || 'Unknown audio',
+        hashtags: result.hashtags?.map((tag: any) => tag.name) || [],
+      };
+    } catch (scraperError) {
+      console.log('tiktok-scraper not available, using fallback method:', scraperError.message);
+      // Fall back to manual scraping method
+      return await manualTikTokScraping(url);
+    }
+  } catch (error) {
+    console.error('Error extracting TikTok metadata:', error);
+    return {
+      caption: '',
+      audio: '',
+      hashtags: []
+    };
+  }
+}
+
+// Manual scraping fallback method
+async function manualTikTokScraping(url: string): Promise<TikTokData> {
   try {
     // Validate TikTok URL
     if (!url.includes('tiktok.com')) {
@@ -145,7 +174,7 @@ async function extractTikTokData(url: string): Promise<TikTokData> {
     };
 
   } catch (error) {
-    console.error("Error extracting TikTok metadata:", error);
+    console.error("Error in manual TikTok scraping:", error);
     return {
       caption: '',
       audio: '',
